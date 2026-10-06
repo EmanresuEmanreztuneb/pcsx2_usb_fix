@@ -6,6 +6,9 @@
 #include "IconsPromptFont.h"
 #include "USB/qemu-usb/USBinternal.h"
 #include "USB/usb-pad/usb-pad-sdl-ff.h"
+#ifdef _WIN32
+#include "USB/usb-pad/usb-pad-dinput-ff.h"
+#endif
 #include "USB/USB.h"
 #include "Host.h"
 #include "StateWrapper.h"
@@ -168,6 +171,15 @@ namespace usb_pad
 					"Off", nullptr, nullptr, nullptr, nullptr, SteeringCurveExponentOptions},
 				{SettingInfo::Type::Boolean, "FfbDropoutWorkaround", TRANSLATE_NOOP("USB", "Workaround for Intermittent FFB Loss"),
 					TRANSLATE_NOOP("USB", "Works around bugs in some wheels' firmware that result in brief interruptions in force. Leave this disabled unless you need it, as it has negative side effects on many wheels."),
+					"false"},
+				{SettingInfo::Type::Boolean, "FfbInvertForces", TRANSLATE_NOOP("USB", "Invert Forces"),
+					TRANSLATE_NOOP("USB", "Reverses the direction of the constant force. Only used when the Force Feedback device is a DirectInput ('DInput-') device."),
+					"false"},
+				{SettingInfo::Type::Integer, "FfbGain", TRANSLATE_NOOP("USB", "Force Feedback Gain"),
+					TRANSLATE_NOOP("USB", "Overall strength of the force feedback. Only used when the Force Feedback device is a DirectInput ('DInput-') device."),
+					"100", "0", "100", "1", TRANSLATE_NOOP("USB", "%d%%"), nullptr, nullptr, 1.0f},
+				{SettingInfo::Type::Boolean, "FfbDebugLog", TRANSLATE_NOOP("USB", "Log Force Feedback Commands"),
+					TRANSLATE_NOOP("USB", "Writes the force feedback values sent to the wheel to the log. Only used for DirectInput ('DInput-') devices."),
 					"false"}
 			};
 
@@ -231,12 +243,23 @@ namespace usb_pad
 				mFFdevName = std::move(ffdevname);
 				OpenFFDevice();
 			}
-			if (mFFdev != NULL)
-			{
-				const bool use_ffb_dropout_workaround = USB::GetConfigBool(si, port, devname, "FfbDropoutWorkaround", false);
-				mFFdev->use_ffb_dropout_workaround = use_ffb_dropout_workaround;
-			}
+			mFFdropoutWorkaround = USB::GetConfigBool(si, port, devname, "FfbDropoutWorkaround", false);
+			mFFinvertForces = USB::GetConfigBool(si, port, devname, "FfbInvertForces", false);
+			mFFgainPercent = USB::GetConfigInt(si, port, devname, "FfbGain", 100);
+			mFFdebugLog = USB::GetConfigBool(si, port, devname, "FfbDebugLog", false);
+			ApplyFFSettings();
 		}
+	}
+
+	void PadState::ApplyFFSettings()
+	{
+		if (!mFFdev)
+			return;
+
+		mFFdev->use_ffb_dropout_workaround = mFFdropoutWorkaround;
+		mFFdev->invert_forces = mFFinvertForces;
+		mFFdev->debug_log = mFFdebugLog;
+		mFFdev->SetGain(mFFgainPercent);
 	}
 
 	void PadState::Reset()
@@ -606,7 +629,16 @@ namespace usb_pad
 			return;
 
 		mFFdev.reset();
-		mFFdev = SDLFFDevice::Create(mFFdevName);
+
+#ifdef _WIN32
+		// DirectInput devices use the DirectInput backend of v1.7.3727, everything else goes through SDL.
+		if (mFFdevName.starts_with("DInput-"))
+			mFFdev = DInputFFDevice::Create(mFFdevName);
+		else
+#endif
+			mFFdev = SDLFFDevice::Create(mFFdevName);
+
+		ApplyFFSettings();
 	}
 
 	static void pad_handle_data(USBDevice* dev, USBPacket* p)

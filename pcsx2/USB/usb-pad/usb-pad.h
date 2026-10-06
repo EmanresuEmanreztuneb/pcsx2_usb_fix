@@ -289,10 +289,16 @@ namespace usb_pad
 		virtual void SetDamperForce(const parsed_ff_data& ff) = 0;
 		virtual void SetFrictionForce(const parsed_ff_data& ff) = 0;
 		virtual void SetAutoCenter(int value) = 0;
-		//virtual void SetGain(int gain) = 0;
 		virtual void DisableForce(EffectID force) = 0;
 
+		// Overall FF strength in percent, only implemented by backends that support it (DirectInput).
+		virtual void SetGain(int percent) {}
+
 		bool use_ffb_dropout_workaround = false;
+
+		// Used by the DirectInput backend only.
+		bool invert_forces = false;
+		bool debug_log = false;
 	};
 
 	struct PadState
@@ -314,6 +320,7 @@ namespace usb_pad
 
 		bool HasFF() const;
 		void OpenFFDevice();
+		void ApplyFFSettings();
 		void ParseFFData(const ff_data* ffdata, bool isDFP);
 
 		s16 ApplySteeringAxisModifiers(float value);
@@ -351,6 +358,10 @@ namespace usb_pad
 
 		std::string mFFdevName;
 		std::unique_ptr<FFDevice> mFFdev;
+		bool mFFdropoutWorkaround = false;
+		bool mFFinvertForces = false;
+		bool mFFdebugLog = false;
+		s32 mFFgainPercent = 100;
 		ff_state mFFstate{};
 	};
 
