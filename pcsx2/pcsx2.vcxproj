@@ -492,6 +492,7 @@
     <ClCompile Include="USB\usb-pad\usb-realplay.cpp" />
     <ClCompile Include="USB\usb-pad\usb-pad-ff.cpp" />
     <ClCompile Include="USB\usb-pad\usb-pad-sdl-ff.cpp" />
+    <ClCompile Include="USB\usb-pad\usb-pad-dinput-ff.cpp" />
     <ClCompile Include="USB\usb-pad\usb-pad.cpp" />
     <ClCompile Include="USB\usb-pad\usb-seamic.cpp" />
     <ClCompile Include="USB\usb-pad\usb-train.cpp" />
@@ -950,6 +951,7 @@
     <ClInclude Include="USB\usb-pad\usb-gametrak.h" />
     <ClInclude Include="USB\usb-pad\usb-realplay.h" />
     <ClInclude Include="USB\usb-pad\usb-pad-sdl-ff.h" />
+    <ClInclude Include="USB\usb-pad\usb-pad-dinput-ff.h" />
     <ClInclude Include="USB\usb-pad\usb-pad.h" />
     <ClInclude Include="USB\usb-pad\usb-train.h" />
     <ClInclude Include="USB\usb-pad\usb-trance-vibrator.h" />

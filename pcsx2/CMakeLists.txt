@@ -904,6 +904,8 @@ if(WIN32)
 		Input/DInputSource.h
 		Input/XInputSource.h
 	)
+	list(APPEND pcsx2USBSources USB/usb-pad/usb-pad-dinput-ff.cpp)
+	list(APPEND pcsx2USBHeaders USB/usb-pad/usb-pad-dinput-ff.h)
 endif()
 
 # Linux sources
