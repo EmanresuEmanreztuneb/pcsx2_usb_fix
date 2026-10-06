@@ -172,6 +172,18 @@ bool DInputSource::IsInitialized()
 	return m_toplevel_window;
 }
 
+IDirectInputDevice8W* DInputSource::GetDeviceForIdentifier(const std::string_view device)
+{
+	if (!device.starts_with("DInput-"))
+		return nullptr;
+
+	const std::optional<u32> index = StringUtil::FromChars<u32>(device.substr(7));
+	if (!index.has_value() || index.value() >= m_controllers.size())
+		return nullptr;
+
+	return m_controllers[index.value()].device.get();
+}
+
 bool DInputSource::AddDevice(ControllerData& cd, const std::string& name)
 {
 	HRESULT hr = cd.device->SetCooperativeLevel(m_toplevel_window, DISCL_BACKGROUND | DISCL_EXCLUSIVE);

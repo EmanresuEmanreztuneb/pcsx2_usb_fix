@@ -52,6 +52,10 @@ public:
 	TinyString ConvertKeyToString(InputBindingKey key, bool display = false, bool migration = false) override;
 	TinyString ConvertKeyToIcon(InputBindingKey key) override;
 
+	/// Returns the DirectInput device for an identifier such as "DInput-0", or null if not connected.
+	/// The returned pointer is not AddRef'd, callers that keep it must hold their own reference.
+	IDirectInputDevice8W* GetDeviceForIdentifier(const std::string_view device);
+
 private:
 	struct ControllerData
 	{
