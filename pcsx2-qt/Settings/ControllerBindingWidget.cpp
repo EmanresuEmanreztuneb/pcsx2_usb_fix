@@ -1290,6 +1290,19 @@ std::string USBBindingWidget::getBindingKey(const char* binding_name) const
 	return USB::GetConfigSubKey(getDeviceType(), binding_name);
 }
 
+// Keeps an "Invert" checkbox in sync with an axis binding, and inverts the axis (+Axis <-> -Axis) when it is clicked.
+static void BindInvertCheckBox(InputBindingWidget* widget, QCheckBox* invert)
+{
+	const auto update_invert = [widget, invert]() {
+		const QSignalBlocker blocker(invert);
+		invert->setEnabled(widget->canInvertAxis());
+		invert->setChecked(widget->isAxisInverted());
+	};
+	update_invert();
+	QObject::connect(widget, &InputBindingWidget::bindingChanged, invert, update_invert);
+	QObject::connect(invert, &QCheckBox::clicked, widget, [widget]() { widget->invertAxis(); });
+}
+
 void USBBindingWidget::createWidgets(std::span<const InputBindingInfo> bindings)
 {
 	QGroupBox* axis_gbox = nullptr;
@@ -1335,14 +1348,7 @@ void USBBindingWidget::createWidgets(std::span<const InputBindingInfo> bindings)
 				invert->setToolTip(tr("Switches the binding between the positive and the negative half of the axis (+Axis / -Axis)."));
 				temp->addWidget(invert);
 
-				const auto update_invert = [widget, invert]() {
-					const QSignalBlocker blocker(invert);
-					invert->setEnabled(widget->canInvertAxis());
-					invert->setChecked(widget->isAxisInverted());
-				};
-				update_invert();
-				connect(widget, &InputBindingWidget::bindingChanged, invert, update_invert);
-				connect(invert, &QCheckBox::clicked, widget, [widget]() { widget->invertAxis(); });
+				BindInvertCheckBox(widget, invert);
 
 				if (column != 0)
 				{
@@ -1434,6 +1440,15 @@ void USBBindingWidget::bindWidgets(std::span<const InputBindingInfo> bindings)
 			if (widget)
 				widget->setKey(getDialog(), getConfigSection(), getBindingKey(bi.name));
 		}
+	}
+
+	// Templates with pedals have "ThrottleInvert" / "BrakeInvert" checkboxes next to the binding.
+	for (const char* pedal : {"Throttle", "Brake"})
+	{
+		InputBindingWidget* binding = findChild<InputBindingWidget*>(QString::fromUtf8(pedal));
+		QCheckBox* invert = findChild<QCheckBox*>(QStringLiteral("%1Invert").arg(QString::fromUtf8(pedal)));
+		if (binding && invert)
+			BindInvertCheckBox(binding, invert);
 	}
 }
 

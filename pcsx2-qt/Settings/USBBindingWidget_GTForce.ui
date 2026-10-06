@@ -243,6 +243,16 @@
           </property>
          </widget>
         </item>
+        <item row="1" column="0">
+         <widget class="QCheckBox" name="BrakeInvert">
+          <property name="toolTip">
+           <string>Switches the binding between the positive and the negative half of the axis (+Axis / -Axis).</string>
+          </property>
+          <property name="text">
+           <string>Invert</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
      </item>
@@ -643,6 +653,16 @@
           </property>
           <property name="text">
            <string notr="true">PushButton</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QCheckBox" name="ThrottleInvert">
+          <property name="toolTip">
+           <string>Switches the binding between the positive and the negative half of the axis (+Axis / -Axis).</string>
+          </property>
+          <property name="text">
+           <string>Invert</string>
           </property>
          </widget>
         </item>
