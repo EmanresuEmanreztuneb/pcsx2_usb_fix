@@ -30,9 +30,18 @@ public:
 
 	void initialize(SettingsInterface* sif, InputBindingInfo::Type bind_type, std::string section_name, std::string key_name);
 
+	/// Axis bindings are stored as "Device/+Axis1" or "Device/-Axis1" (positive or negative half of the axis).
+	/// These switch all of them between the two halves, which inverts e.g. a pedal axis.
+	bool canInvertAxis() const;
+	bool isAxisInverted() const;
+	void invertAxis();
+
 public Q_SLOTS:
 	void clearBinding();
 	void reloadBinding();
+
+Q_SIGNALS:
+	void bindingChanged();
 
 protected Q_SLOTS:
 	void onClicked();

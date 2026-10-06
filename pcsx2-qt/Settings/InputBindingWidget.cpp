@@ -8,6 +8,7 @@
 #include <QtWidgets/QInputDialog>
 #include <QtWidgets/QMessageBox>
 #include <bit>
+#include <cctype>
 #include <cmath>
 #include <sstream>
 
@@ -236,8 +237,10 @@ void InputBindingWidget::setNewBinding()
 		}
 	}
 
+	m_bindings_settings.assign(1, new_binding);
 	m_bindings_ui.clear();
 	m_bindings_ui.push_back(std::move(new_binding));
+	emit bindingChanged();
 }
 
 void InputBindingWidget::clearBinding()
@@ -272,6 +275,78 @@ void InputBindingWidget::reloadBinding()
 	}
 
 	updateText();
+	emit bindingChanged();
+}
+
+// "Device/+Axis1" or "Device/-Axis1": the sign after the slash selects the half of the axis, the next character is a letter.
+static bool HasAxisDirectionAt(const std::string& binding, size_t slash_pos)
+{
+	return (slash_pos + 2 < binding.size() && (binding[slash_pos + 1] == '+' || binding[slash_pos + 1] == '-') &&
+			std::isalpha(static_cast<unsigned char>(binding[slash_pos + 2])));
+}
+
+static std::string FlipAxisDirections(std::string binding)
+{
+	for (size_t pos = binding.find('/'); pos != std::string::npos; pos = binding.find('/', pos + 1))
+	{
+		if (HasAxisDirectionAt(binding, pos))
+			binding[pos + 1] = (binding[pos + 1] == '+') ? '-' : '+';
+	}
+	return binding;
+}
+
+bool InputBindingWidget::canInvertAxis() const
+{
+	for (const std::string& binding : m_bindings_settings)
+	{
+		for (size_t pos = binding.find('/'); pos != std::string::npos; pos = binding.find('/', pos + 1))
+		{
+			if (HasAxisDirectionAt(binding, pos))
+				return true;
+		}
+	}
+
+	return false;
+}
+
+bool InputBindingWidget::isAxisInverted() const
+{
+	for (const std::string& binding : m_bindings_settings)
+	{
+		for (size_t pos = binding.find('/'); pos != std::string::npos; pos = binding.find('/', pos + 1))
+		{
+			if (HasAxisDirectionAt(binding, pos))
+				return (binding[pos + 1] == '-');
+		}
+	}
+
+	return false;
+}
+
+void InputBindingWidget::invertAxis()
+{
+	if (!canInvertAxis())
+		return;
+
+	std::vector<std::string> flipped;
+	flipped.reserve(m_bindings_settings.size());
+	for (const std::string& binding : m_bindings_settings)
+		flipped.push_back(FlipAxisDirections(binding));
+
+	if (m_sif)
+	{
+		m_sif->SetStringList(m_section_name.c_str(), m_key_name.c_str(), flipped);
+		m_sif->Save();
+		g_emu_thread->reloadGameSettings();
+	}
+	else
+	{
+		Host::SetBaseStringListSettingValue(m_section_name.c_str(), m_key_name.c_str(), flipped);
+		Host::CommitBaseSettingChanges();
+		g_emu_thread->reloadInputBindings();
+	}
+
+	reloadBinding();
 }
 
 void InputBindingWidget::onClicked()

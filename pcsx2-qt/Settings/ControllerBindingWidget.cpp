@@ -2,12 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0+
 
 #include <QtCore/QDir>
+#include <QtCore/QSignalBlocker>
+#include <QtWidgets/QCheckBox>
 #include <QtWidgets/QInputDialog>
 #include <QtWidgets/QMenu>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QScrollArea>
 #include <algorithm>
 #include <array>
+#include <cstring>
 #include "fmt/format.h"
 
 #include "common/Console.h"
@@ -1317,10 +1320,39 @@ void USBBindingWidget::createWidgets(std::span<const InputBindingInfo> bindings)
 				axis_layout = new QGridLayout(axis_gbox);
 			}
 
+			// Throttle and brake get their own row, with a checkbox next to the binding that inverts the axis.
+			// Needs proper testing with pedals whose axis rests at one end.
+			const bool pedal = (std::strcmp(bi.name, "Throttle") == 0 || std::strcmp(bi.name, "Brake") == 0);
+
 			QGroupBox* gbox = new QGroupBox(qApp->translate("USB", bi.display_name), axis_gbox);
-			QVBoxLayout* temp = new QVBoxLayout(gbox);
+			QBoxLayout* temp = pedal ? static_cast<QBoxLayout*>(new QHBoxLayout(gbox)) : static_cast<QBoxLayout*>(new QVBoxLayout(gbox));
 			InputBindingWidget* widget = new InputBindingWidget(gbox, sif, bi.bind_type, getConfigSection(), getBindingKey(bi.name));
 			temp->addWidget(widget);
+
+			if (pedal)
+			{
+				QCheckBox* invert = new QCheckBox(tr("Invert"), gbox);
+				invert->setToolTip(tr("Switches the binding between the positive and the negative half of the axis (+Axis / -Axis)."));
+				temp->addWidget(invert);
+
+				const auto update_invert = [widget, invert]() {
+					const QSignalBlocker blocker(invert);
+					invert->setEnabled(widget->canInvertAxis());
+					invert->setChecked(widget->isAxisInverted());
+				};
+				update_invert();
+				connect(widget, &InputBindingWidget::bindingChanged, invert, update_invert);
+				connect(invert, &QCheckBox::clicked, widget, [widget]() { widget->invertAxis(); });
+
+				if (column != 0)
+				{
+					column = 0;
+					row++;
+				}
+				axis_layout->addWidget(gbox, row++, 0);
+				continue;
+			}
+
 			axis_layout->addWidget(gbox, row, column);
 			if ((++column) == NUM_AXIS_COLUMNS)
 			{
