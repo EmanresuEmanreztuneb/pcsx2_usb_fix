@@ -95,8 +95,15 @@ AutoUpdaterDialog::AutoUpdaterDialog(QWidget* parent /* = nullptr */)
 
 AutoUpdaterDialog::~AutoUpdaterDialog() = default;
 
+// pcsx2_ffb_fix: this fork must not offer to replace itself with an official PCSX2 build,
+// which would remove the DirectInput force feedback backend. The updater checks the official PCSX2 releases.
+#define FFB_FIX_DISABLE_UPDATER 1
+
 bool AutoUpdaterDialog::isSupported()
 {
+#ifdef FFB_FIX_DISABLE_UPDATER
+	return false;
+#else
 	// Logic to detect whether we can use the auto updater.
 	// We use tagged commit, because this gets set on nightly builds.
 	if (!BuildVersion::GitTaggedCommit)
@@ -117,6 +124,7 @@ bool AutoUpdaterDialog::isSupported()
 #else
 	return false;
 #endif
+#endif // FFB_FIX_DISABLE_UPDATER
 }
 
 QStringList AutoUpdaterDialog::getTagList()
